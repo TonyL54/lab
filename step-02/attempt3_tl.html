@@ -88,7 +88,7 @@
   </div>
   <div id="score"></div>
   <div id="chances"></div>
-  <div id="enemyCount">Enemies Passed: 0</div>
+  <div id="enemyCount">Enemies Spawned: 0</div>
 
   <script>
     const enemy_variables = {
@@ -270,7 +270,7 @@
 
       updateEnemyCount() {
         const totalEnemiesPassed = this.enemiesPassed + this.enemiesShot;
-        this.enemyCountElement.innerText = "Enemies Passed: " + totalEnemiesPassed;
+        this.enemyCountElement.innerText = "Enemies Spawned: " + totalEnemiesPassed;
       },
     };
 
