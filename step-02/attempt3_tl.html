@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Press 'Space' to Start!</title>
+  <style>
+    html,
+    body {
+      max-width: 100%;
+      overflow-x: hidden;
+      max-height: 100%;
+      overflow-y: hidden;
+    }
+
+    body {
+      background-color: #252323;
+    }
+
+    .square {
+      height: 500px;
+      width: 500px;
+      background-color: #2b2d8f;
+      position: absolute;
+      top: 150px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    #enemy {
+      top: 50px;
+      height: 25px;
+      width: 50px;
+      background-color: #02270b;
+      position: absolute;
+    }
+
+    #player {
+      top: 475px;
+      left: 225px;
+      height: 25px;
+      width: 25px;
+      background-color: #000000;
+      position: absolute;
+    }
+
+    #projectile {
+      top: 400px;
+      left: 235px;
+      height: 20px;
+      width: 5px;
+      background-color: #ff0000;
+      position: absolute;
+      visibility: hidden;
+    }
+
+    #score {
+      color: #fefefe;
+      font-family: 'Times New Roman', Times, Serif;
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    #chances {
+      color: #fefefe;
+      font-family: 'Times New Roman', Times, Serif;
+      position: absolute;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    #enemyCount {
+      color: #fefefe;
+      font-family: 'Times New Roman', Times, Serif;
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+  </style>
+</head>
+<body>
+  <div class="square">
+    <div id="enemy"></div>
+    <div id="player"></div>
+    <div id="projectile"></div>
+  </div>
+  <div id="score"></div>
+  <div id="chances"></div>
+  <div id="enemyCount">Enemies Passed: 0</div>
+
+  <script>
+    const enemy_variables = {
+      enemy: null,
+      x: 0,
+      y: 0,
+      dx: 1,
+      initialX: 0,
+      currentSpeed: 1
+    };
+
+    const play_variables = {
+      player: null,
+      playerPosition: 225
+    };
+
+    const projectile_variables = {
+      projectile: null
+    };
+
+    const game = {
+      scoreElement: null,
+      chancesElement: null,
+      enemyCountElement: null,
+      score: 0,
+      chances: 3,
+      enemiesPassed: 0,
+      enemiesShot: 0,
+      gameActive: false,
+      currentSpeed: 1,
+      speedMultiplier: 1.2,
+
+      startGame() {
+        if (this.gameActive) return;
+
+        this.gameActive = true;
+        this.score = 0;
+        this.chances = 3;
+        this.enemiesPassed = 0;
+        this.enemiesShot = 0;
+        this.updateScore();
+        this.updateChances();
+        this.updateEnemyCount();
+
+        enemy_variables.x = 0;
+        enemy_variables.y = 50;
+        enemy_variables.initialX = 0;
+        enemy_variables.enemy.style.visibility = "visible";
+        enemy_variables.enemy.style.left = enemy_variables.x + "px";
+
+        document.addEventListener("keydown", this.handleKeyPress.bind(this));
+        this.moveEnemy();
+      },
+
+      handleKeyPress(event) {
+        if (!this.gameActive) return;
+
+        switch (event.code) {
+          case "ArrowLeft":
+            this.movePlayerLeft();
+            break;
+          case "ArrowRight":
+            this.movePlayerRight();
+            break;
+          case "Space":
+            this.shootProjectile();
+            break;
+        }
+      },
+
+      movePlayerLeft() {
+        if (play_variables.playerPosition > 0) {
+          play_variables.playerPosition -= 9;
+          play_variables.player.style.left = play_variables.playerPosition + "px";
+        }
+      },
+
+      movePlayerRight() {
+        if (play_variables.playerPosition < 468) {
+          play_variables.playerPosition += 9;
+          play_variables.player.style.left = play_variables.playerPosition + "px";
+        }
+      },
+
+      moveEnemy() {
+        if (!this.gameActive) return;
+
+        enemy_variables.x += enemy_variables.dx;
+        enemy_variables.enemy.style.left = enemy_variables.x + "px";
+
+        if (enemy_variables.x >= 450) {
+          if (enemy_variables.enemy.style.visibility === "visible") {
+            this.chances--;
+            this.updateChances();
+            this.enemiesPassed++;
+            this.updateEnemyCount();
+          }
+          this.resetEnemyPosition();
+        }
+
+        if (enemy_variables.x > play_variables.playerPosition && enemy_variables.enemy.style.visibility === "visible") {
+          if (this.chances <= 0) {
+            this.gameActive = false;
+            alert("Game Over!");
+            if (confirm("Press OK to play again.")) {
+              window.location.reload(); // Reload the tab to start a new game
+            } else {
+              return;
+            }
+          }
+        }
+        requestAnimationFrame(this.moveEnemy.bind(this));
+      },
+
+      shootProjectile() {
+        const projectileTop = parseInt(projectile_variables.projectile.style.top);
+        if (projectileTop > 0) {
+          projectile_variables.projectile.style.visibility = "visible";
+
+          const playerLeft = parseInt(play_variables.player.style.left);
+          projectile_variables.projectile.style.left = playerLeft + 10 + "px";
+          projectile_variables.projectile.style.top = projectileTop - 10 + "px";
+
+          if (this.isCollision()) {
+            if (enemy_variables.enemy.style.visibility === "visible") {
+              enemy_variables.enemy.style.visibility = "hidden";
+              this.score += 1;
+              this.enemiesShot += 1;
+              this.updateScore();
+              this.updateEnemyCount();
+
+              setTimeout(() => {
+                enemy_variables.enemy.style.visibility = "visible";
+                this.resetEnemyPosition();
+                this.currentSpeed *= this.speedMultiplier; // Increase the speed
+                enemy_variables.dx = this.currentSpeed; // Update the horizontal speed
+              }, 1000);
+            }
+          }
+
+          setTimeout(this.shootProjectile.bind(this), 15);
+        } else {
+          projectile_variables.projectile.style.visibility = "hidden";
+          projectile_variables.projectile.style.top = "450px";
+        }
+      },
+
+      resetEnemyPosition() {
+          enemy_variables.x = enemy_variables.initialX;
+          enemy_variables.y = Math.floor(Math.random() * 420) + 50 - 50; // Randomize y-axis position and subtract 50 for higher position
+          enemy_variables.enemy.style.left = enemy_variables.x + "px";
+          enemy_variables.enemy.style.top = enemy_variables.y + "px"; // Update the y-axis position
+
+          // Randomize enemy speed between somewhat fast and slow
+          const minSpeed = 1; // Minimum speed value
+          const maxSpeed = 3; // Maximum speed value
+          this.currentSpeed = Math.random() * (maxSpeed - minSpeed) + minSpeed;
+          enemy_variables.dx = this.currentSpeed;
+        },
+
+      isCollision() {
+        const projectileRect = projectile_variables.projectile.getBoundingClientRect();
+        const enemyRect = enemy_variables.enemy.getBoundingClientRect();
+
+        return (
+          projectileRect.top <= enemyRect.bottom &&
+          projectileRect.right >= enemyRect.left &&
+          projectileRect.left <= enemyRect.right
+        );
+      },
+
+      updateScore() {
+        this.scoreElement.innerText = "Score: " + this.score;
+      },
+
+      updateChances() {
+        this.chancesElement.innerText = "Chances: " + this.chances;
+      },
+
+      updateEnemyCount() {
+        const totalEnemiesPassed = this.enemiesPassed + this.enemiesShot;
+        this.enemyCountElement.innerText = "Enemies Passed: " + totalEnemiesPassed;
+      },
+    };
+
+    window.addEventListener("DOMContentLoaded", () => {
+      enemy_variables.enemy = document.getElementById("enemy");
+      play_variables.player = document.getElementById("player");
+      projectile_variables.projectile = document.getElementById("projectile");
+      game.scoreElement = document.getElementById("score");
+      game.chancesElement = document.getElementById("chances");
+      game.enemyCountElement = document.getElementById("enemyCount");
+
+      document.addEventListener("keydown", (event) => {
+        if (event.code === "Space") {
+          game.startGame();
+        }
+      });
+    });
+  </script>
+</body>
+</html> 
